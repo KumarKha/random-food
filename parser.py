@@ -1,28 +1,10 @@
-from flask import Flask, jsonify
-import requests
 from bs4 import BeautifulSoup
-
 import json
 
-app = Flask(__name__)
-
-
-def fetch_menu(url,menu_type,**kwargs):
-    headers = kwargs.get('headers',None)
-    try:
-        if headers:
-            res  = requests.get(url, headers=headers)
-        else:
-            res = requests.get(url)
-        if res.status_code != 200:
-            print(f"Error:Unable to Fetch {menu_type} Menu. Status Code: {res.status_code}")
-            return None
-        return res
-    except requests.RequestException as e:
-        print(f"Request error fetching { menu_type} menu: {e}")
-        return None
+from fetcher import fetch_menu
 
 def parse_mcdonalds_menu() -> dict:
+    
     mcdonalds_url = 'https://www.mcdonalds.com/us/en-us/full-menu.html'
 
     
@@ -36,33 +18,31 @@ def parse_mcdonalds_menu() -> dict:
     menu_items = [[item.text.strip() for item in row.find_all("li")] for row in full_menu.find_all("ul", class_="cmp-category__row")]
 
     return dict(zip(menu_titles,menu_items))
-    
-    
-
-@app.route('/menu', methods =['GET'])
-def get_menu():
-    return jsonify(parse_mcdonalds_menu())
 
 
 
-def fetch_wendys_menu():
+def parse_wendys_menu():
     url = 'https://api.app.prd.wendys.digital/web-client-gateway/menu/getSiteMenu?lang=en&cntry=US&sourceCode=ORDER.WENDYS&version=24.12.4&siteNum=0&menuChannel=WEB_GUEST'
     
     headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
     res = fetch_menu(url,"wendys", headers=headers)
-    # menu_data = res.json()
-    
-    
-    
+    menu = res.json()
+    save_json(menu,"wendys.json")
+    return menu
 
-    
+
+
+
+
+def save_json(data: dict, filename: str):
+    """Save the JSON to a file"""
+    try: 
+        with open(filename,"w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+        print(f"Successfully saved {filename}")
+    except Exception as e:
+        print(f"Error saving JSON {e}")
         
-
-@app.route('/wendys', methods = ['GET'])
-def get_wendys():
-    return fetch_wendys_menu()
-if __name__ == '__main__':
-    app.run(debug=True)
 
