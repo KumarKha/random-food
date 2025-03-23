@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+import re
 
 from utils import fetch_menu, load_from_firestore, save_to_firestore
 
@@ -15,13 +16,33 @@ def parse_mcdonalds_data():
     menu_items = [[item.text.strip() 
         for item in row.find_all("li")] 
         for row in full_menu.find_all("ul", class_="cmp-category__row")]
+    # Empty List to store the names for 
     
+    for submenu in menu_items:
+        for i, item in enumerate(submenu):
+            submenu[i] = format_string(item)
     
-                 
+    for submenu in menu_items:
+        get_individual_item_data(submenu)
+    
     menu_data = dict(zip(menu_titles,menu_items))
     # menu_items = [{"name" : item} for category in menu_data.values() for item in category]
-    save_to_firestore("menus","mcdonalds",menu_data)
+    # save_to_firestore("menus","mcdonalds",menu_data)
     return menu_data
+
+def get_individual_item_data(item_names: list):
+    base_url = "https://www.mcdonalds.com/us/en-us/product/{}.html"
+    for item in item_names:
+        # Some 
+        if item == "mustard-packet":
+            item = "mustard-package"
+        print(base_url.format(item))
+
+def format_string(s: str):
+    s = s.lower()
+    s = re.sub(r'[^a-z0-9\s]', '', s)
+    s= re.sub(r'\s+','-',s.strip())
+    return s
     
 def parse_wendys_data():
     url = 'https://api.app.prd.wendys.digital/web-client-gateway/menu/getSiteMenu?lang=en&cntry=US&sourceCode=ORDER.WENDYS&version=24.12.4&siteNum=0&menuChannel=WEB_GUEST'
